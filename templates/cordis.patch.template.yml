@@ -6,7 +6,7 @@
 # 手动改这个模板时注意两点：
 #   1. persona 的 config.prefix 是 YAML 块标量（|-），正文行必须保持 16 个空格的缩进，
 #      否则渲染出来的 YAML 会散架。名字里也不要带换行。
-#   2. 插件行与 dsh 0.2.0-rc.2 的 shipped `standard` 预设同构，只替换了 persona 一行。
+#   2. 插件行与 dsh 0.2.1-rc.2 的 shipped `standard` 预设同构，只替换了 persona 一行。
 #      升级 dsh 时对照新版 standard 预设核对插件名，有改名的要跟着改。
 - insert:
     - id: preset-custom-persona
@@ -78,6 +78,10 @@
               sampleOverCapGlobResults: false
           - id: tool-jobs
             name: '@deepseek-ai/dsh-tool-jobs'
+          - id: time-context
+            name: '@deepseek-ai/dsh-time-context'
+          - id: tool-schedule
+            name: '@deepseek-ai/dsh-tool-schedule'
           - id: skill-filesystem
             name: '@deepseek-ai/dsh-skill-filesystem'
           - id: tool-skill
@@ -169,12 +173,6 @@
                   provider: spawn
               - id: tool-workflow
                 name: '@deepseek-ai/dsh-tool-workflow'
-              - id: tool-ralph
-                name: '@deepseek-ai/dsh-tool-ralph'
-                disabled: true
-                config:
-                  subagentProvider: spawn
-                  maxRounds: 64
           - id: tool-ask-user
             name: '@deepseek-ai/dsh-tool-ask-user'
           - id: tool-todo
@@ -190,3 +188,5 @@
             name: '@deepseek-ai/dsh-tool-present'
           - id: tool-plugin-manager
             name: '@deepseek-ai/dsh-plugin-manager/tools'
+          - id: tool-plugin-market
+            name: '@deepseek-ai/dsh-plugin-market/tools'
