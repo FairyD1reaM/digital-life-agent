@@ -63,7 +63,8 @@ def read_name_interactive() -> tuple[str, str]:
     try:
         raw_short = input(f"小名（留空则用「小{name}」）> ")
     except EOFError:
-        fail("检测到非交互输入（stdin 已结束）。请改用：--name <名字> [--short <小名>]")
+        print()          # 管道场景没有回显，补一个换行
+        raw_short = ""   # 有默认值，降级而不是失败
     short = normalize(raw_short)
     if not short:
         short = f"小{name}"
