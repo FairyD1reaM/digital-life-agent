@@ -139,6 +139,24 @@ def _validate_loose(text: str) -> None:
     print("  YAML 校验：pyyaml 不可用，已退化为结构检查（建议 pip install pyyaml 做完整校验）")
 
 
+def guard_out_dir(out: Path) -> None:
+    """--out 护栏：绝不把项目目录、其上级目录、用户主目录、盘根当成输出目录。"""
+    if out == HERE or out in HERE.parents:
+        fail(f"--out 不能是项目目录或其上级目录：{out}")
+    if out == Path.home():
+        fail(f"--out 不能是用户主目录：{out}")
+    if out.parent == out:  # 盘根，如 C:\ 或 /
+        fail(f"--out 不能是磁盘根目录：{out}")
+    if out.is_dir():
+        markers = [m for m in ("generate.py", "selftest.py", "templates", ".git") if (out / m).exists()]
+        if markers:
+            fail(
+                f"--out 指向的目录里有项目文件（{', '.join(markers)}），拒绝写入：\n"
+                f"  {out}\n"
+                "  请换一个空目录，例如 --out out。"
+            )
+
+
 def write_bundle(out: Path, rendered: str) -> Path:
     patch_path = out / "cordis.patch.yml"
     patch_path.write_text(rendered, encoding="utf-8", newline="\n")
@@ -215,8 +233,16 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     out = Path(args.out).resolve() if args.out else DEFAULT_OUT
+    guard_out_dir(out)
     if out.exists():
+        if not out.is_dir():
+            fail(f"--out 指向的是一个已存在的文件，不是目录：{out}\n  删掉它，或换一个 --out。")
         if args.refresh:
+            if not (out / "cordis.patch.yml").exists() and not (out / "package.json").exists():
+                fail(
+                    f"拒绝清空 {out}：它不是上一次生成的输出目录"
+                    "（里面没有 cordis.patch.yml 或 package.json）。"
+                )
             shutil.rmtree(out)
         elif any(out.iterdir()):
             fail(f"输出目录已存在且非空：{out}\n  加 --refresh 清空它，或换一个 --out。")

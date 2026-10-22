@@ -140,6 +140,35 @@ def test_plugin_parity(standard: Path) -> int:
     return 0 if ok else 1
 
 
+def test_out_guard(tmp: Path) -> int:
+    failures = 0
+    for label, arg in (("--out .", "."), ("--out ..", "..")):
+        proc = run_gen(["--name", "护栏测试", "--out", arg, "--refresh"], tmp)
+        ok = proc.returncode == 2
+        print(f"  [{'OK' if ok else 'FAIL'}] {label} 被拒绝 (exit={proc.returncode})")
+        failures += 0 if ok else 1
+
+    ok = (HERE / "generate.py").exists() and (HERE / "templates").exists()
+    print(f"  [{'OK' if ok else 'FAIL'}] 执行后项目文件仍然存在")
+    failures += 0 if ok else 1
+
+    afile = tmp / "afile.txt"
+    afile.write_text("x", encoding="utf-8")
+    proc = run_gen(["--name", "护栏测试", "--out", str(afile)], tmp)
+    ok = proc.returncode == 2 and "不是目录" in (proc.stdout + proc.stderr)
+    print(f"  [{'OK' if ok else 'FAIL'}] --out 指向文件被拒绝 (exit={proc.returncode})")
+    failures += 0 if ok else 1
+
+    notours = tmp / "notours"
+    notours.mkdir()
+    (notours / "keep.txt").write_text("keep", encoding="utf-8")
+    proc = run_gen(["--name", "护栏测试", "--out", str(notours), "--refresh"], tmp)
+    ok = proc.returncode == 2 and (notours / "keep.txt").exists()
+    print(f"  [{'OK' if ok else 'FAIL'}] 非产物目录拒绝清空、keep.txt 保留")
+    failures += 0 if ok else 1
+    return failures
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="generate.py 自检")
     parser.add_argument("--standard", help="可选：shipped standard.patch.yml 的路径，用于插件清单对齐检查")
@@ -154,8 +183,10 @@ def main() -> int:
         failures += test_template_hygiene()
         print("[3] 示例文件同步")
         failures += test_example_sync(tmp)
+        print("[4] --out 护栏")
+        failures += test_out_guard(tmp)
         if args.standard:
-            print("[4] 插件清单对齐")
+            print("[5] 插件清单对齐")
             failures += test_plugin_parity(Path(args.standard))
 
     print()
