@@ -74,7 +74,7 @@ plugin_manager(action: "list_plugins")
 | 需要 | 说明 |
 |---|---|
 | dsh | DeepSeek Harness，能提供 `plugin_manager` 工具 |
-| Python | 3.10+（生成器只依赖标准库） |
+| Python | 3.9+（生成器只依赖标准库） |
 | pyyaml | 可选。装了会做真 YAML 校验，没装退化为结构检查 |
 
 ## 这个预设做什么 / 不做什么

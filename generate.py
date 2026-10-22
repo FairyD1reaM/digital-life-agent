@@ -50,13 +50,21 @@ def read_name_interactive() -> tuple[str, str]:
     print("在为你的角色生成预设之前，必须先命名。")
     print("（这个文件名会贯穿角色卡：自称规则、被叫全名时的反应、昵称档都挂在它上面。）\n")
     while True:
-        name = normalize(input("你的角色叫什么名字？> "))
+        try:
+            raw = input("你的角色叫什么名字？> ")
+        except EOFError:
+            fail("检测到非交互输入（stdin 已结束）。请改用：--name <名字> [--short <小名>]")
+        name = normalize(raw)
         if name:
             break
         print("不能为空。请给它起一个名字——随便起一个也行，之后还能改。\n")
 
     print(f"\n角色可以有一个更亲昵的小名（比如「{name}」→「小{name}」）。")
-    short = normalize(input(f"小名（留空则用「小{name}」）> "))
+    try:
+        raw_short = input(f"小名（留空则用「小{name}」）> ")
+    except EOFError:
+        fail("检测到非交互输入（stdin 已结束）。请改用：--name <名字> [--short <小名>]")
+    short = normalize(raw_short)
     if not short:
         short = f"小{name}"
         print(f"（未填，采用「{short}」）")
@@ -162,7 +170,23 @@ def build_parser() -> argparse.ArgumentParser:
     return p
 
 
+def _force_utf8_stdio() -> None:
+    """Windows 控制台默认 cp936 时，打印 emoji 会抛 UnicodeEncodeError。
+    统一切到 UTF-8 + replace，保证不会崩在写文件之前。"""
+    for stream in (getattr(sys, "stdout", None), getattr(sys, "stderr", None)):
+        if stream is None:
+            continue
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is None:
+            continue
+        try:
+            reconfigure(encoding="utf-8", errors="replace")
+        except Exception:  # noqa: BLE001
+            pass
+
+
 def main(argv: list[str] | None = None) -> int:
+    _force_utf8_stdio()
     args = build_parser().parse_args(argv)
 
     if not TEMPLATE.exists():

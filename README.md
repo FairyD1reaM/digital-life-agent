@@ -37,7 +37,7 @@
 ### 前提
 
 - 装了 `dsh`（DeepSeek Harness）
-- 有 Python 3（生成器只用标准库，pyyaml 可选但推荐）
+- 有 Python 3.9 或更新（生成器只用标准库，pyyaml 可选但推荐）
 
 ### 第一步：起名
 
@@ -207,7 +207,7 @@ python selftest.py --standard /path/to/standard.patch.yml
 - 模板的插件行对齐 **dsh 0.2.1-rc.2** 的 shipped `standard` 预设（含 `time-context`、`tool-schedule`、`tool-plugin-market`）。
 - 从 0.2.0 → 0.2.1 的差异：`standard` 新增上述三个插件，去掉了 `tool-ralph`；本模板已同步。
 - dsh 升级后，如果某个插件改名了，预设会在激活时报错。**激活失败会留在 roster 上并带诊断信息**，不会静默失效。对照新版 `standard` 预设核对插件名即可。
-- 生成器用 Python 3.9+（只用了标准库；`argparse` 里用了 `list[str] | None` 写法，所以实际上要 3.10+）。
+- 生成器用 Python 3.9+；无需第三方库（`from __future__ import annotations` 让 `list[str] | None` 这类标注写法在 3.9 下也能用）。
 
 ---
 
