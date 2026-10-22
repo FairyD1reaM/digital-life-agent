@@ -53,7 +53,7 @@ plugin_manager(action: "install_bundle", target: "<out 目录绝对路径>")
 plugin_manager(action: "list_plugins")
 ```
 
-应出现 `include:preset-custom-persona`，且 `fiberPhase` 为 `active`。
+应出现 `include:preset-persona-<slug>`（`<slug>` 见生成时打印的「预设 id」），且 `fiberPhase` 为 `active`。
 
 ### 第 3 步：报错就停
 
@@ -66,7 +66,7 @@ plugin_manager(action: "list_plugins")
 
 - 新开一个会话
 - 在预设选择器里选那个角色的名字
-- 想设为默认：改 `agent-preset-registry` 的 `default` 为 `custom-persona`，然后重启 dsh
+- 想设为默认：改 `agent-preset-registry` 的 `default` 为 `custom-persona-<slug>`（生成时打印的预设 id），然后重启 dsh
 
 ---
 

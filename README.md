@@ -85,7 +85,9 @@ out/
 路径：<out 目录的绝对路径>
 
 做法：用 plugin_manager 工具，action = install_bundle，target = 上面那个路径。
-装完用 list_plugins 验证存在 include:preset-custom-persona 这一行且 fiberPhase 为 active。
+装完用 list_plugins 验证存在 `include:preset-persona-<slug>` 这一行且 fiberPhase 为 active。
+
+`<slug>` 由角色名派生（ASCII 名字取规范化结果，非 ASCII 名字取名字哈希前 8 位）；生成完成时脚本会打印一行「预设 id：custom-persona-<slug>」，照抄即可。
 已经有这个预设的话改用 set_bundle 重新指向新路径，不要重复安装。
 ```
 
@@ -101,10 +103,17 @@ out/
 - id: agent-preset-registry
   name: "@deepseek-ai/dsh-agent-preset-registry"
   config:
-    default: custom-persona
+    default: custom-persona-<slug>
 ```
 
 改完要重启 dsh。
+
+### 升级提示
+
+旧版本生成的 preset id 固定为 `custom-persona`；新版本按角色名派生（`custom-persona-<slug>`），这样多个角色才能共存。
+
+- 已装过旧预设的用户：升级后会多出一条新预设，旧的那条要手工删掉。
+- 想保留旧 id：生成时加 `--preset-id custom-persona`。
 
 ---
 
@@ -137,7 +146,7 @@ out/
 4. 用 plugin_manager 工具安装：action = install_bundle，
    target = out 目录的绝对路径。
 
-5. 验证：list_plugins 里应出现 include:preset-custom-persona，且 fiberPhase 为 active。
+5. 验证：list_plugins 里应出现脚本打印的 include:preset-persona-<slug>，且 fiberPhase 为 active。
    如果 activation 失败，把诊断原文贴给我，不要自行改动插件名去"修"。
 
 6. 告诉我怎么启用（新开会话后在预设选择器里选），以及怎么改默认预设。

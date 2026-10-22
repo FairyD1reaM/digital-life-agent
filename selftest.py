@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import json
 import subprocess
 import sys
 import tempfile
@@ -103,6 +104,8 @@ def test_template_hygiene() -> int:
         ("含 {{ROLE_NAME}}", b"{{ROLE_NAME}}" in raw),
         ("含 {{ROLE_SHORT}}", b"{{ROLE_SHORT}}" in raw),
         ("含 {{ROLE_NAME_YAML}}", b"{{ROLE_NAME_YAML}}" in raw),
+        ("含 {{PRESET_ROW_ID}}", b"{{PRESET_ROW_ID}}" in raw),
+        ("含 {{PRESET_ID}}", b"{{PRESET_ID}}" in raw),
         ("保留 {{cwd}}", b"{{cwd}}" in raw),
     ]
     for label, ok in checks:
@@ -187,6 +190,49 @@ def test_out_guard(tmp: Path) -> int:
     return failures
 
 
+def test_identity(tmp: Path) -> int:
+    """不同角色必须得到不同身份；--preset-id 必须能复现旧 id。"""
+    failures = 0
+    identities = {}
+    for i, nm in enumerate(("林晚", "苏晴")):
+        out = tmp / f"id{i}"
+        proc = run_gen(["--name", nm, "--out", str(out), "--refresh"], tmp)
+        if proc.returncode != 0:
+            print(f"  [FAIL] 生成 {nm} 失败: exit={proc.returncode}")
+            failures += 1
+            continue
+        pkg = json.loads((out / "package.json").read_text(encoding="utf-8"))
+        row_id = config_id = None
+        if HAS_YAML:
+            import yaml  # noqa: PLC0415
+
+            doc = yaml.safe_load((out / "cordis.patch.yml").read_text(encoding="utf-8"))
+            row = doc[0]["insert"][0]
+            row_id, config_id = row["id"], row["config"]["id"]
+        identities[nm] = (pkg["name"], row_id, config_id)
+
+    if len(identities) == 2:
+        a, b = identities["林晚"], identities["苏晴"]
+        distinct = a[0] != b[0] and (a[1] is None or (a[1] != b[1] and a[2] != b[2]))
+        print(f"  [{'OK' if distinct else 'FAIL'}] 两个角色的包名与 preset id 都不同")
+        failures += 0 if distinct else 1
+
+    out = tmp / "idoverride"
+    proc = run_gen(["--name", "林晚", "--out", str(out), "--refresh", "--preset-id", "custom-persona"], tmp)
+    ok = proc.returncode == 0
+    detail = f"exit={proc.returncode}"
+    if ok and HAS_YAML:
+        import yaml  # noqa: PLC0415
+
+        doc = yaml.safe_load((out / "cordis.patch.yml").read_text(encoding="utf-8"))
+        row = doc[0]["insert"][0]
+        ok = row["id"] == "preset-custom-persona" and row["config"]["id"] == "custom-persona"
+        detail += f" | row={row['id']!r} config.id={row['config']['id']!r}"
+    print(f"  [{'OK' if ok else 'FAIL'}] --preset-id custom-persona 复现旧 id: {detail}")
+    failures += 0 if ok else 1
+    return failures
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="generate.py 自检")
     parser.add_argument("--standard", help="可选：shipped standard.patch.yml 的路径，用于插件清单对齐检查")
@@ -206,8 +252,10 @@ def main() -> int:
         failures += test_example_sync(tmp)
         print("[4] --out 护栏")
         failures += test_out_guard(tmp)
+        print("[5] 身份派生")
+        failures += test_identity(tmp)
         if args.standard:
-            print("[5] 插件清单对齐")
+            print("[6] 插件清单对齐")
             failures += test_plugin_parity(Path(args.standard))
 
     print()

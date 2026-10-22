@@ -27,7 +27,7 @@
 4. 用 plugin_manager 工具安装：action = install_bundle，
    target = out 目录的绝对路径。
 
-5. 验证：list_plugins 里应出现 include:preset-custom-persona，
+5. 验证：list_plugins 里应出现生成时打印的 include:preset-persona-<slug>，
    且 fiberPhase 为 active。
    如果 activation 失败，把诊断原文贴给我，不要自行改动插件名去"修"。
 
