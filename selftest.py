@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import subprocess
 import sys
 import tempfile
@@ -20,6 +21,9 @@ HERE = Path(__file__).resolve().parent
 GEN = HERE / "generate.py"
 TEMPLATE = HERE / "templates" / "cordis.patch.template.yml"
 EXAMPLE = HERE / "examples" / "cordis.patch.example.yml"
+
+# pyyaml 是可选依赖：没有它时跳过产物回读，而不是把每条用例判成失败。
+HAS_YAML = importlib.util.find_spec("yaml") is not None
 
 # (说明, 名字, 小名, 期望退出码)
 CASES = [
@@ -54,26 +58,40 @@ def run_gen(args, tmp: Path):
     )
 
 
-def test_cases(tmp: Path) -> int:
+def test_cases(tmp: Path) -> tuple[int, int]:
+    """返回 (失败数, 跳过数)。没有 pyyaml 时跳过 YAML 回读并计为 SKIP。"""
     failures = 0
+    skips = 0
     for i, (label, name, short, expect) in enumerate(CASES):
         out = tmp / f"case{i}"
         proc = run_gen(["--name", name, "--short", short, "--out", str(out), "--refresh"], tmp)
         ok = proc.returncode == expect
         detail = f"exit={proc.returncode} expect={expect}"
-        if ok and expect == 0:
-            try:
-                doc = load_yaml(out / "cordis.patch.yml")
-                got = doc[0]["insert"][0]["config"]["name"]
-                if got != name.strip().strip("'").strip('"').strip():
-                    ok = False
-                    detail += f" | name 回读不符: {got!r}"
-            except Exception as exc:  # noqa: BLE001
-                ok = False
-                detail = f"YAML 解析失败: {exc}"
-        print(f"  [{'OK' if ok else 'FAIL'}] {label}: {detail}")
-        failures += 0 if ok else 1
-    return failures
+        if not ok:
+            print(f"  [FAIL] {label}: {detail}")
+            failures += 1
+            continue
+        if expect != 0:
+            print(f"  [OK] {label}: {detail}")
+            continue
+        if not HAS_YAML:
+            print(f"  [SKIP] {label}: 未装 pyyaml，跳过 YAML 回读")
+            skips += 1
+            continue
+        try:
+            doc = load_yaml(out / "cordis.patch.yml")
+            got = doc[0]["insert"][0]["config"]["name"]
+        except Exception as exc:  # noqa: BLE001
+            print(f"  [FAIL] {label}: YAML 解析失败: {exc}")
+            failures += 1
+            continue
+        want = name.strip().strip("'").strip('"').strip()
+        if got != want:
+            print(f"  [FAIL] {label}: name 回读不符: {got!r}")
+            failures += 1
+        else:
+            print(f"  [OK] {label}: {detail}")
+    return failures, skips
 
 
 def test_template_hygiene() -> int:
@@ -175,10 +193,13 @@ def main() -> int:
     args = parser.parse_args()
 
     failures = 0
+    skips = 0
     with tempfile.TemporaryDirectory(prefix="lanxi-selftest-") as td:
         tmp = Path(td)
         print("[1] 生成器边界用例")
-        failures += test_cases(tmp)
+        case_failures, case_skips = test_cases(tmp)
+        failures += case_failures
+        skips += case_skips
         print("[2] 模板卫生")
         failures += test_template_hygiene()
         print("[3] 示例文件同步")
@@ -193,7 +214,10 @@ def main() -> int:
     if failures:
         print(f"自检失败：{failures} 项")
         return 1
-    print("自检全部通过")
+    if skips:
+        print(f"自检通过（跳过 {skips} 项：未装 pyyaml，无法做 YAML 回读）")
+    else:
+        print("自检全部通过")
     return 0
 
 

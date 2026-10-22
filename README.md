@@ -193,6 +193,9 @@ python selftest.py
 - 生成器边界用例（单引号/双引号/冒号/井号/反斜杠/表情/超长名字，以及该拒绝的占位符撞名和换行）
 - 模板卫生（无 BOM、无 Tab、占位符齐全、保留 `{{cwd}}`）
 - `examples/` 里的示例是否与模板同步
+- `--out` 护栏（拒绝项目目录、上级目录、已存在文件、陌生目录）
+
+未装 pyyaml 时，产物回读那部分会显示 `SKIP` 并跳过，其余检查照常进行，退出码不受影响。
 
 如果手边有 dsh 的 shipped `standard.patch.yml`（源码 checkout 在 `packages/bundle/web-app/presets/standard.patch.yml`），再加一个参数核对插件清单是否与官方对齐：
 
