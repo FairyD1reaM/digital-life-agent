@@ -38,6 +38,7 @@
 
 - 装了 `dsh`（DeepSeek Harness）
 - 有 Python 3.9 或更新（生成器只用标准库，pyyaml 可选但推荐）
+- **平台：仅支持 Windows。** 终端工具行沿用 `tool-bash` 关闭 / `tool-pwsh` 开启的固定配置（对应 Windows 的 `standard` 预设）。macOS / Linux 上安装后不会有可用的终端工具，需要的话请自行修改 `templates/cordis.patch.template.yml` 里这两行的 `disabled` 值。
 
 ### 第一步：起名
 
@@ -125,7 +126,8 @@ out/
    这个角色卡的通篇机制（自称规则、被叫全名时的反应、小名档）都挂在名字上，
    名字是占位符的话预设就是坏的。
 
-2. 用我给的答案运行：
+2. 用我给的答案运行（先 cd 到项目根）：
+   cd "<项目绝对路径>"
    python generate.py --name "<我给的>" --short "<我给的>"
    （Windows 下如果 python 不通，试 py -3。）
 

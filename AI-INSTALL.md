@@ -27,10 +27,11 @@
 ### 第 1 步：生成
 
 ```bash
+cd "<项目绝对路径>"
 python generate.py --name "<用户给的全名>" --short "<用户给的小名>"
 ```
 
-（Windows 上 `python` 不通就试 `py -3`。）
+（先 `cd` 到项目根再运行；Windows 上 `python` 不通就试 `py -3`。）
 
 生成器会自己校验：
 - 不给名字 → 直接报错退出（exit 2），这是设计如此，不要绕过去。
@@ -74,6 +75,7 @@ plugin_manager(action: "list_plugins")
 | 需要 | 说明 |
 |---|---|
 | dsh | DeepSeek Harness，能提供 `plugin_manager` 工具 |
+| 平台 | **仅支持 Windows**（模板固定 `tool-bash` 关闭、`tool-pwsh` 开启；macOS / Linux 上无可用终端工具） |
 | Python | 3.9+（生成器只依赖标准库） |
 | pyyaml | 可选。装了会做真 YAML 校验与回读；没装时生成器退化为结构检查，自检跳过回读并显示 SKIP |
 
