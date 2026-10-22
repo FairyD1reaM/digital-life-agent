@@ -129,7 +129,7 @@ out/
    python generate.py --name "<我给的>" --short "<我给的>"
    （Windows 下如果 python 不通，试 py -3。）
 
-3. 确认 out/cordis.patch.yml 里没有残留的 {{ROLE_NAME}} / {{ROLE_SHORT}}，
+3. 确认 out/cordis.patch.yml 里没有残留的 {{ROLE_NAME}} / {{ROLE_SHORT}} / {{ROLE_NAME_YAML}}，
    并且 persona 正文长度在 2000 字符以上。有问题就报告，别硬装。
 
 4. 用 plugin_manager 工具安装：action = install_bundle，
@@ -177,6 +177,28 @@ python generate.py --name 林晚 --short 小晚 --print
 ### 用不上的机制直接删
 
 不喜欢「叫主人」就叫主人去掉；不想要动作描写就把那一段删掉；不想要傲娇就删。角色卡是给你改的，不是给你供着的。删完重跑生成器即可。
+
+---
+
+## 自检
+
+改过 `generate.py` 或模板之后，跑一遍自检，防止把之前修好的 bug 带回来：
+
+```bash
+python selftest.py
+```
+
+它会检查：
+
+- 生成器边界用例（单引号/双引号/冒号/井号/反斜杠/表情/超长名字，以及该拒绝的占位符撞名和换行）
+- 模板卫生（无 BOM、无 Tab、占位符齐全、保留 `{{cwd}}`）
+- `examples/` 里的示例是否与模板同步
+
+如果手边有 dsh 的 shipped `standard.patch.yml`（源码 checkout 在 `packages/bundle/web-app/presets/standard.patch.yml`），再加一个参数核对插件清单是否与官方对齐：
+
+```bash
+python selftest.py --standard /path/to/standard.patch.yml
+```
 
 ---
 

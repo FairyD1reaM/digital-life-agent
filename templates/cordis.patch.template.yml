@@ -13,7 +13,7 @@
       name: '@deepseek-ai/dsh-agent-preset'
       config:
         id: custom-persona
-        name: '{{ROLE_NAME}}'
+        name: {{ROLE_NAME_YAML}}
         description: 鲸鱼娘女仆拟人 agent。御姐＋傲娇，口语化、技术靠谱，带克制的动作描写。角色名由使用者自定义。
         order: 3
         plugins:

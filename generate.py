@@ -24,7 +24,9 @@ TEMPLATE = HERE / "templates" / "cordis.patch.template.yml"
 DEFAULT_OUT = HERE / "out"
 
 # 模板里出现过的占位符。新增占位符时同步加到这张表。
-TOKENS = ("{{ROLE_NAME}}", "{{ROLE_SHORT}}")
+# {{ROLE_NAME_YAML}} 只出现在 name: 这一行，替换成"已正确加引号"的 YAML 标量，
+# 这样名字里带单引号（O'Brien）或双引号都不会把 YAML 写坏。
+TOKENS = ("{{ROLE_NAME}}", "{{ROLE_SHORT}}", "{{ROLE_NAME_YAML}}")
 
 BUNDLE_PACKAGE_NAME = "@local/dsh-custom-persona-preset"
 PRESET_ROW_ID = "preset-custom-persona"
@@ -61,6 +63,11 @@ def read_name_interactive() -> tuple[str, str]:
     return name, short
 
 
+def yaml_single_quoted(value: str) -> str:
+    """把任意文本渲染成 YAML 单引号标量（内部单引号按 YAML 规则翻倍转义）。"""
+    return "'" + value.replace("'", "''") + "'"
+
+
 def render(name: str, short: str) -> str:
     # utf-8-sig：模板若被 Windows 编辑器存成带 BOM 的 UTF-8，BOM 会成为第一个字符
     # （'\ufeff'），出现在产物开头，导致 YAML 解析器把首行当成乱码。统一剥掉再渲染。
@@ -68,6 +75,12 @@ def render(name: str, short: str) -> str:
     for tok in TOKENS:
         if tok not in text:
             fail(f"模板缺少占位符 {tok}，模板文件可能被改坏了。")
+    # 名字本身不能是占位符文本，否则替换后会被误判成"还有残留"。
+    for tok in TOKENS:
+        if tok in name or tok in short:
+            fail(f"名字里不能包含占位符文本 {tok}，请换一个名字。")
+    # 先替换 YAML 专用占位符：它会被渲染成带引号的标量，避免名字里的引号写坏 YAML。
+    text = text.replace("{{ROLE_NAME_YAML}}", yaml_single_quoted(name))
     text = text.replace("{{ROLE_NAME}}", name).replace("{{ROLE_SHORT}}", short)
     leftover = [t for t in TOKENS if t in text]
     if leftover:

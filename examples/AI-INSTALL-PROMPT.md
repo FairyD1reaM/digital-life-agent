@@ -20,7 +20,7 @@
    python generate.py --name "<我给的>" --short "<我给的>"
    （Windows 下如果 python 不通，试 py -3。）
 
-3. 确认 out/cordis.patch.yml 里没有残留的 {{ROLE_NAME}} / {{ROLE_SHORT}}，
+3. 确认 out/cordis.patch.yml 里没有残留的 {{ROLE_NAME}} / {{ROLE_SHORT}} / {{ROLE_NAME_YAML}}，
    并且 persona 正文长度在 2000 字符以上。有问题就报告，别硬装。
 
 4. 用 plugin_manager 工具安装：action = install_bundle，
