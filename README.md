@@ -111,6 +111,10 @@ out/
     default: custom-persona-<slug>
 ```
 
+这里的值就是生成时打印的「预设 id」。默认是 `custom-persona-<slug>`；如果你生成时加了
+`--preset-id linwan`，那就填 `linwan`。别把 `include:` 那一行整个抄进来——那串比 id 多一个
+`preset-` 前缀，对不上任何预设，默认设置就不会生效。
+
 改完要重启 dsh。
 
 ### 升级提示

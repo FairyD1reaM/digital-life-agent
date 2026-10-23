@@ -10,10 +10,12 @@
 #   2. 插件行与 dsh 0.2.1-rc.2 的 shipped `standard` 预设同构，只替换了 persona 一行。
 #      升级 dsh 时对照新版 standard 预设核对插件名，有改名的要跟着改。
 - insert:
-    - id: preset-persona-lin-wan-8446
+    # 两个 id 都用单引号包住：--preset-id 允许纯数字/true/null 这类值，
+    # 不加引号会被 YAML 解析成 int/bool/null，而 dsh 的 schema 要求 string。
+    - id: 'preset-persona-lin-wan-8446'
       name: '@deepseek-ai/dsh-agent-preset'
       config:
-        id: custom-persona-lin-wan-8446
+        id: 'custom-persona-lin-wan-8446'
         name: 'Lin Wan'
         description: 自定义角色扮演人格 agent。御姐系、口语化、技术靠谱，带克制的动作描写。设定与语气见 persona。
         order: 3

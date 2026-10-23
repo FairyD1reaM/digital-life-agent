@@ -148,6 +148,11 @@ def validate_yaml(text: str, expect_row_id: str) -> None:
         fail(f"渲染结果不是合法 YAML：{exc}")
     if row["id"] != expect_row_id:
         fail(f"声明行 id 不对：{row.get('id')!r}（期望 {expect_row_id!r}）")
+    # config.id 必须是字符串：--preset-id 传纯数字或 true/null 时，未加引号的 YAML 会
+    # 解析成 int/bool/None，dsh 的 preset schema 要求 string，装上去会直接加载失败。
+    config_id = row["config"].get("id")
+    if not isinstance(config_id, str) or not config_id:
+        fail(f"config.id 必须是字符串，实际是 {config_id!r}（{type(config_id).__name__}）")
     plugins = row["config"]["plugins"]
     if not plugins or plugins[0]["id"] != "persona":
         fail("persona 必须是第一个插件行。")

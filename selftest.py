@@ -273,6 +273,36 @@ def test_identity(tmp: Path) -> int:
     return failures
 
 
+def test_preset_id_scalars(tmp: Path) -> tuple[int, int]:
+    """--preset-id 传纯数字 / true / null 这类值时，config.id 必须仍是字符串。
+
+    YAML 里未加引号的 `id: 0` 会解析成 int、`id: true` 成 bool、`id: null` 成 None，
+    而 dsh 的 preset schema 要求 string —— 装上去会直接加载失败。模板现在给两个 id
+    都加了单引号，这条测试防止有人把引号去掉。
+    """
+    failures = 0
+    skips = 0
+    for i, preset in enumerate(("0", "123", "true", "null", "-")):
+        out = tmp / f"scalar{i}"
+        proc = run_gen(["--name", "林晚", "--out", str(out), "--refresh", "--preset-id", preset], tmp)
+        if proc.returncode != 0:
+            print(f"  [FAIL] --preset-id {preset!r}: exit={proc.returncode} {proc.stderr.strip()[:70]}")
+            failures += 1
+            continue
+        if not HAS_YAML:
+            print(f"  [SKIP] --preset-id {preset!r} 类型校验（未装 pyyaml）")
+            skips += 1
+            continue
+        import yaml  # noqa: PLC0415
+
+        doc = yaml.safe_load((out / "cordis.patch.yml").read_text(encoding="utf-8"))
+        got = doc[0]["insert"][0]["config"]["id"]
+        ok = isinstance(got, str) and got == preset
+        print(f"  [{'OK' if ok else 'FAIL'}] --preset-id {preset!r} → config.id={got!r} ({type(got).__name__})")
+        failures += 0 if ok else 1
+    return failures, skips
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="generate.py 自检")
     parser.add_argument("--standard", help="可选：shipped standard.patch.yml 的路径，用于插件清单对齐检查")
@@ -294,8 +324,12 @@ def main() -> int:
         failures += test_out_guard(tmp)
         print("[5] 身份派生")
         failures += test_identity(tmp)
+        print("[6] --preset-id 标量安全")
+        sid_failures, sid_skips = test_preset_id_scalars(tmp)
+        failures += sid_failures
+        skips += sid_skips
         if args.standard:
-            print("[6] 插件清单对齐")
+            print("[7] 插件清单对齐")
             failures += test_plugin_parity(Path(args.standard))
 
     print()
