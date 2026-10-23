@@ -17,7 +17,7 @@
       config:
         id: '{{PRESET_ID}}'
         name: {{ROLE_NAME_YAML}}
-        description: 自定义角色扮演人格 agent。御姐系、口语化、技术靠谱，带克制的动作描写。设定与语气见 persona。
+        description: 鲸鱼娘女仆拟人 agent。御姐＋傲娇，口语化、技术靠谱，带克制的动作描写。角色名由使用者自定义。
         order: 3
         plugins:
           - id: persona
