@@ -198,6 +198,22 @@ def guard_out_dir(out: Path) -> None:
             )
 
 
+def looks_like_our_output(out: Path) -> bool:
+    """判断目录是否是本生成器上一次的产物：同时有 cordis.patch.yml
+    和带 dsh.bundle.patch 的 package.json。只凭 package.json 就删会误伤普通 Node 项目。"""
+    patch = out / "cordis.patch.yml"
+    pkg = out / "package.json"
+    if not (patch.exists() and pkg.exists()):
+        return False
+    try:
+        data = json.loads(pkg.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        return False
+    dsh = data.get("dsh")
+    bundle = dsh.get("bundle") if isinstance(dsh, dict) else None
+    return isinstance(bundle, dict) and bundle.get("patch") == "./cordis.patch.yml"
+
+
 def write_bundle(out: Path, rendered: str, package_name: str) -> Path:
     patch_path = out / "cordis.patch.yml"
     patch_path.write_text(rendered, encoding="utf-8", newline="\n")
@@ -287,10 +303,10 @@ def main(argv: list[str] | None = None) -> int:
         if not out.is_dir():
             fail(f"--out 指向的是一个已存在的文件，不是目录：{out}\n  删掉它，或换一个 --out。")
         if args.refresh:
-            if not (out / "cordis.patch.yml").exists() and not (out / "package.json").exists():
+            if not looks_like_our_output(out):
                 fail(
-                    f"拒绝清空 {out}：它不是上一次生成的输出目录"
-                    "（里面没有 cordis.patch.yml 或 package.json）。"
+                    f"拒绝清空 {out}：它不是本项目的输出目录"
+                    "（需要同时存在 cordis.patch.yml 和带 dsh.bundle.patch 的 package.json）。"
                 )
             shutil.rmtree(out)
         elif any(out.iterdir()):

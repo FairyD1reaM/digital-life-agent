@@ -204,6 +204,24 @@ def test_out_guard(tmp: Path) -> int:
     ok = proc.returncode == 2 and (notours / "keep.txt").exists()
     print(f"  [{'OK' if ok else 'FAIL'}] 非产物目录拒绝清空、keep.txt 保留")
     failures += 0 if ok else 1
+
+    # 只有 package.json 的普通 Node 项目也不能被当成产物删掉
+    notours_pkg = tmp / "notours_pkg"
+    notours_pkg.mkdir()
+    (notours_pkg / "package.json").write_text('{"name":"someone-elses-project"}', encoding="utf-8")
+    (notours_pkg / "keep.txt").write_text("keep", encoding="utf-8")
+    proc = run_gen(["--name", "护栏测试", "--out", str(notours_pkg), "--refresh"], tmp)
+    ok = proc.returncode == 2 and (notours_pkg / "keep.txt").exists()
+    print(f"  [{'OK' if ok else 'FAIL'}] 普通 package.json 目录拒绝清空")
+    failures += 0 if ok else 1
+
+    # 自己的产物目录仍然允许 --refresh 重建
+    okout = tmp / "okout"
+    run_gen(["--name", "甲", "--out", str(okout), "--refresh"], tmp)
+    proc = run_gen(["--name", "乙", "--out", str(okout), "--refresh"], tmp)
+    ok = proc.returncode == 0
+    print(f"  [{'OK' if ok else 'FAIL'}] 自己的产物目录允许 --refresh 重建")
+    failures += 0 if ok else 1
     return failures
 
 
