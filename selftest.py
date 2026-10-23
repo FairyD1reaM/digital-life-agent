@@ -259,6 +259,17 @@ def test_identity(tmp: Path) -> int:
         pkg_ok = pkg["name"] == "@local/dsh-custom-persona-preset"
         print(f"  [{'OK' if pkg_ok else 'FAIL'}] --preset-id custom-persona 包名回退: {pkg['name']}")
         failures += 0 if pkg_ok else 1
+
+    # 同一角色换一个 --preset-id：包名必须跟着 id 变。否则两个不同预设共用一个 bundle 名，
+    # install_bundle 会把第二个当成同一个包（跳过或覆盖），用户看到「改了 id 却没生效」。
+    out2 = tmp / "idcustom"
+    proc2 = run_gen(["--name", "林晚", "--out", str(out2), "--refresh", "--preset-id", "linwan"], tmp)
+    if proc2.returncode == 0:
+        pkg2 = json.loads((out2 / "package.json").read_text(encoding="utf-8"))
+        default_pkg = identities.get("林晚", (None,))[0]
+        ok2 = default_pkg is not None and pkg2["name"] != default_pkg
+        print(f"  [{'OK' if ok2 else 'FAIL'}] 换 --preset-id 后包名随之改变: {pkg2['name']}")
+        failures += 0 if ok2 else 1
     return failures
 
 

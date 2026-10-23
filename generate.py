@@ -96,7 +96,7 @@ def yaml_single_quoted(value: str) -> str:
     return "'" + value.replace("'", "''") + "'"
 
 
-def render(name: str, short: str, preset_id_override: str | None = None) -> tuple[str, str, str, str]:
+def render(name: str, short: str, preset_id_override: str | None = None) -> tuple[str, str, str]:
     # utf-8-sig：模板若被 Windows 编辑器存成带 BOM 的 UTF-8，BOM 会成为第一个字符
     # （'\ufeff'），出现在产物开头，导致 YAML 解析器把首行当成乱码。统一剥掉再渲染。
     text = TEMPLATE.read_text(encoding="utf-8-sig")
@@ -131,7 +131,7 @@ def render(name: str, short: str, preset_id_override: str | None = None) -> tupl
         fail(f"渲染后仍残留占位符：{leftover}")
     if text.startswith("\ufeff"):
         text = text.lstrip("\ufeff")
-    return text, row_id, preset_id, slug
+    return text, row_id, preset_id
 
 
 def validate_yaml(text: str, expect_row_id: str) -> None:
@@ -271,7 +271,7 @@ def main(argv: list[str] | None = None) -> int:
         guard_out_dir(out)
 
     print(f"角色名：{name}    小名：{short}")
-    rendered, row_id, preset_id, slug = render(name, short, args.preset_id)
+    rendered, row_id, preset_id = render(name, short, args.preset_id)
     validate_yaml(rendered, row_id)
 
     if args.print_only:
@@ -291,17 +291,24 @@ def main(argv: list[str] | None = None) -> int:
         elif any(out.iterdir()):
             fail(f"输出目录已存在且非空：{out}\n  加 --refresh 清空它，或换一个 --out。")
     out.mkdir(parents=True, exist_ok=True)
-    package_name = f"@local/dsh-persona-{slug}"
-    if args.preset_id and preset_id == "custom-persona":
+    if preset_id == "custom-persona":
         # 旧 id 沿用旧包名：install_bundle 才会把它认成同一个 bundle 走升级，
         # 而不是产生第二个 bundle 撞同一个 config.id。
         package_name = "@local/dsh-custom-persona-preset"
+    else:
+        # 包名跟随「最终 preset id」，而不是角色名的 slug。否则同一个角色先后用不同
+        # --preset-id 生成，两个产物的包名会一样，install_bundle 把第二个当成同一个
+        # bundle（跳过或覆盖），用户会看到「改了 id，但装完没变化」。
+        package_name = f"@local/dsh-persona-{preset_id.removeprefix('custom-persona-')}"
     patch_path = write_bundle(out, rendered, package_name)
 
     print("\n生成完成：")
     print(f"  {patch_path}")
     print(f"  {out / 'package.json'}")
     print(f"  预设 id：{preset_id}（在预设选择器里显示为「{name}」）")
+    # 直接打印可照抄的 include 行：row id 与 preset id 不是同一个字符串
+    # （默认是 preset-persona-<slug> 对 custom-persona-<slug>），文档里靠公式描述容易写错。
+    print(f"  装好后 list_plugins 里应出现：include:{row_id}")
     print("\n下一步（二选一）：")
     print("  A. 在 dsh 里让 AI 装：把 README.md 里那段「交给 AI 安装」的提示词连同本项目路径发给它，")
     print(f"     让它执行 plugin_manager install_bundle，target = {out}")

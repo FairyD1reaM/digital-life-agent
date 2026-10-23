@@ -85,15 +85,18 @@ out/
 路径：<out 目录的绝对路径>
 
 做法：用 plugin_manager 工具，action = install_bundle，target = 上面那个路径。
-装完用 list_plugins 验证存在 `include:preset-persona-<slug>` 这一行且 fiberPhase 为 active。
+装完用 list_plugins 验证出现脚本打印的那行 include:…，且 fiberPhase 为 active。
 
-`<slug>` 由角色名派生（ASCII 名字取规范化结果，非 ASCII 名字取名字哈希前 8 位）；生成完成时脚本会打印一行「预设 id：custom-persona-<slug>」，照抄即可。
+生成完成时脚本会打印两行：「预设 id：custom-persona-n5c84b703」和
+「装好后 list_plugins 里应出现：include:preset-persona-n5c84b703」。**核对后面那一行**，
+直接照抄，别自己拼——row id 和 preset id 不是同一个字符串（`preset-persona-…` 对 `custom-persona-…`）。
 已经有这个预设的话改用 set_bundle 重新指向新路径，不要重复安装。
 ```
 
 装成功之后，**新开一个会话**，在预设选择器里选它。
 
-> 中文名默认得到哈希 id（如 `custom-persona-n5c84b703`）；想要可读的 id，可以加 `--preset-id linwan` 重新生成。
+> 中文名默认得到哈希 id（如 `custom-persona-n5c84b703`）；想要可读的 id，可以加 `--preset-id linwan` 重新生成，此时预设 id 就是 `linwan`。
+> 注意换 id 等于换了一套预设：旧的要在插件管理里删掉，别让两条同时留着。
 
 **手工装（不推荐，容易搞坏配置）：** 把 `out/cordis.patch.yml` 的内容插进 profile 的 `cordis.patch.yml`。注意是**插入**，不是覆盖——那个文件里还有你其他的配置。改之前先备份。
 
@@ -148,7 +151,8 @@ out/
 4. 用 plugin_manager 工具安装：action = install_bundle，
    target = out 目录的绝对路径。
 
-5. 验证：list_plugins 里应出现脚本打印的 include:preset-persona-<slug>，且 fiberPhase 为 active。
+5. 验证：list_plugins 里应出现脚本打印的那行 include:…（照抄它输出的
+   「装好后 list_plugins 里应出现：」后面的内容），且 fiberPhase 为 active。
    如果 activation 失败，把诊断原文贴给我，不要自行改动插件名去"修"。
 
 6. 告诉我怎么启用（新开会话后在预设选择器里选），以及怎么改默认预设。

@@ -53,7 +53,8 @@ plugin_manager(action: "install_bundle", target: "<out 目录绝对路径>")
 plugin_manager(action: "list_plugins")
 ```
 
-应出现 `include:preset-persona-<slug>`（`<slug>` 见生成时打印的「预设 id」），且 `fiberPhase` 为 `active`。
+应出现生成器打印的那行 `include:…`（默认是 `include:preset-persona-<slug>`；加了 `--preset-id X` 则是 `include:preset-X`），且 `fiberPhase` 为 `active`。
+注意它和打印的「预设 id」不是同一个字符串，不要自己拼——照抄生成器输出的那一行。
 
 ### 第 3 步：报错就停
 
