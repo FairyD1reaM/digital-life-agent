@@ -55,10 +55,13 @@ def normalize(raw: str) -> str:
 
 def name_slug(name: str) -> str:
     """角色名 → 稳定的 ASCII slug。不做拼音转换（会引入依赖），
-    非 ASCII 名字回退到名字哈希的前 8 位——同一个名字永远得到同一个身份。"""
+    非 ASCII 名字回退到名字哈希的前 8 位——同一个名字永远得到同一个身份。
+    截断后补 4 位哈希，避免长名字在 20 字符处相撞。"""
     ascii_part = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode()
-    s = re.sub(r"[^a-z0-9]+", "-", ascii_part.lower()).strip("-")[:24].strip("-")
-    return s or "n" + hashlib.sha256(name.encode("utf-8")).hexdigest()[:8]
+    s = re.sub(r"[^a-z0-9]+", "-", ascii_part.lower()).strip("-")
+    if s:
+        return f"{s[:20]}-{hashlib.sha256(name.encode('utf-8')).hexdigest()[:4]}"
+    return "n" + hashlib.sha256(name.encode("utf-8")).hexdigest()[:8]
 
 
 def read_name_interactive() -> tuple[str, str]:
@@ -262,6 +265,11 @@ def main(argv: list[str] | None = None) -> int:
             fail("--name 不能是空字符串。")
         short = normalize(args.short) if args.short else f"小{name}"
 
+    out = Path(args.out).resolve() if args.out else DEFAULT_OUT
+    if not args.print_only:
+        # 护栏提前到渲染之前：失败时不再先打印“YAML 校验通过”再报错。
+        guard_out_dir(out)
+
     print(f"角色名：{name}    小名：{short}")
     rendered, row_id, preset_id, slug = render(name, short, args.preset_id)
     validate_yaml(rendered, row_id)
@@ -270,8 +278,6 @@ def main(argv: list[str] | None = None) -> int:
         print(rendered)
         return 0
 
-    out = Path(args.out).resolve() if args.out else DEFAULT_OUT
-    guard_out_dir(out)
     if out.exists():
         if not out.is_dir():
             fail(f"--out 指向的是一个已存在的文件，不是目录：{out}\n  删掉它，或换一个 --out。")
@@ -285,7 +291,12 @@ def main(argv: list[str] | None = None) -> int:
         elif any(out.iterdir()):
             fail(f"输出目录已存在且非空：{out}\n  加 --refresh 清空它，或换一个 --out。")
     out.mkdir(parents=True, exist_ok=True)
-    patch_path = write_bundle(out, rendered, f"@local/dsh-persona-{slug}")
+    package_name = f"@local/dsh-persona-{slug}"
+    if args.preset_id and preset_id == "custom-persona":
+        # 旧 id 沿用旧包名：install_bundle 才会把它认成同一个 bundle 走升级，
+        # 而不是产生第二个 bundle 撞同一个 config.id。
+        package_name = "@local/dsh-custom-persona-preset"
+    patch_path = write_bundle(out, rendered, package_name)
 
     print("\n生成完成：")
     print(f"  {patch_path}")

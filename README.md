@@ -93,6 +93,8 @@ out/
 
 装成功之后，**新开一个会话**，在预设选择器里选它。
 
+> 中文名默认得到哈希 id（如 `custom-persona-n5c84b703`）；想要可读的 id，可以加 `--preset-id linwan` 重新生成。
+
 **手工装（不推荐，容易搞坏配置）：** 把 `out/cordis.patch.yml` 的内容插进 profile 的 `cordis.patch.yml`。注意是**插入**，不是覆盖——那个文件里还有你其他的配置。改之前先备份。
 
 ### 让它成为默认预设

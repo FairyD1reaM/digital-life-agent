@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -116,7 +117,7 @@ def test_template_hygiene() -> int:
 
 def test_example_sync(tmp: Path) -> int:
     out = tmp / "example"
-    proc = run_gen(["--name", "示例名", "--short", "小名", "--out", str(out), "--refresh"], tmp)
+    proc = run_gen(["--name", "Lin Wan", "--short", "Wan", "--out", str(out), "--refresh"], tmp)
     if proc.returncode != 0:
         print(f"  [FAIL] 示例生成失败: {proc.stderr.strip()}")
         return 1
@@ -163,10 +164,26 @@ def test_plugin_parity(standard: Path) -> int:
 
 def test_out_guard(tmp: Path) -> int:
     failures = 0
+    # 在临时副本里打靶：即使护栏回归，被删的也只是副本，不会毁掉工作树。
+    proj = tmp / "proj"
+    proj.mkdir()
+    shutil.copy2(GEN, proj / "generate.py")
+    shutil.copytree(TEMPLATE.parent, proj / "templates")
+
+    def run_in_copy(args):
+        return subprocess.run(
+            [sys.executable, str(proj / "generate.py"), *args],
+            cwd=str(proj),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+
     for label, arg in (("--out .", "."), ("--out ..", "..")):
-        proc = run_gen(["--name", "护栏测试", "--out", arg, "--refresh"], tmp)
-        ok = proc.returncode == 2
-        print(f"  [{'OK' if ok else 'FAIL'}] {label} 被拒绝 (exit={proc.returncode})")
+        proc = run_in_copy(["--name", "护栏测试", "--out", arg, "--refresh"])
+        ok = proc.returncode == 2 and (proj / "generate.py").exists()
+        print(f"  [{'OK' if ok else 'FAIL'}] {label} 被拒绝，副本仍在 (exit={proc.returncode})")
         failures += 0 if ok else 1
 
     ok = (HERE / "generate.py").exists() and (HERE / "templates").exists()
@@ -213,9 +230,15 @@ def test_identity(tmp: Path) -> int:
 
     if len(identities) == 2:
         a, b = identities["林晚"], identities["苏晴"]
-        distinct = a[0] != b[0] and (a[1] is None or (a[1] != b[1] and a[2] != b[2]))
-        print(f"  [{'OK' if distinct else 'FAIL'}] 两个角色的包名与 preset id 都不同")
-        failures += 0 if distinct else 1
+        pkg_ok = a[0] != b[0]
+        print(f"  [{'OK' if pkg_ok else 'FAIL'}] 两个角色的包名不同")
+        failures += 0 if pkg_ok else 1
+        if HAS_YAML:
+            id_ok = a[1] != b[1] and a[2] != b[2]
+            print(f"  [{'OK' if id_ok else 'FAIL'}] 两个角色的 preset id 不同")
+            failures += 0 if id_ok else 1
+        else:
+            print("  [SKIP] preset id 比对（未装 pyyaml）")
 
     out = tmp / "idoverride"
     proc = run_gen(["--name", "林晚", "--out", str(out), "--refresh", "--preset-id", "custom-persona"], tmp)
@@ -230,6 +253,12 @@ def test_identity(tmp: Path) -> int:
         detail += f" | row={row['id']!r} config.id={row['config']['id']!r}"
     print(f"  [{'OK' if ok else 'FAIL'}] --preset-id custom-persona 复现旧 id: {detail}")
     failures += 0 if ok else 1
+
+    if proc.returncode == 0:
+        pkg = json.loads((out / "package.json").read_text(encoding="utf-8"))
+        pkg_ok = pkg["name"] == "@local/dsh-custom-persona-preset"
+        print(f"  [{'OK' if pkg_ok else 'FAIL'}] --preset-id custom-persona 包名回退: {pkg['name']}")
+        failures += 0 if pkg_ok else 1
     return failures
 
 
